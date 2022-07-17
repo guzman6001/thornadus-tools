@@ -1,5 +1,4 @@
-import React, { Component } from 'react';
-import './App.css';
+import React, {Component, useState} from 'react';
 import {EventService}     from './service/EventService';
 import {MetricService}    from './service/MetricService';
 import {ContactService}   from './service/ContactService';
@@ -7,7 +6,7 @@ import {DataTable}        from 'primereact/datatable';
 import {Column}           from 'primereact/column';
 import {Panel}            from 'primereact/panel';
 import {Menubar}          from 'primereact/menubar';
-import {Calendar}       from 'primereact/calendar';
+import {Calendar}         from 'primereact/calendar';
 import {Dialog}           from 'primereact/dialog';
 import {InputText}        from 'primereact/inputtext';
 import {Button}           from 'primereact/button';
@@ -24,9 +23,33 @@ import {
 } from "react-timeseries-charts";
 import { TimeSeries } from "pondjs";
 
-import 'primereact/resources/themes/nova-light/theme.css';
-import 'primereact/resources/primereact.min.css';
+import format from "date-fns/format";
+import getDay from "date-fns/getDay";
+import parse from "date-fns/parse";
+import startOfWeek from "date-fns/startOfWeek"
+
+import { Calendar as PanelCalendar, dateFnsLocalizer } from 'react-big-calendar'
+
+import DatePicker from "react-datepicker";
+
+import "./App.css";
 import 'primeicons/primeicons.css';
+import 'primereact/resources/primereact.min.css';
+import "react-datepicker/dist/react-datepicker.css";
+import 'primereact/resources/themes/nova-light/theme.css';
+import "react-big-calendar/lib/css/react-big-calendar.css";
+
+
+const locales = {
+  "en-US": require("date-fns/locale/en-US"),
+};
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
 
 
 
@@ -82,13 +105,18 @@ export default class App extends Component{
         endDate: ""
       },
       selectedEvent : {
-
+        id: null,
+        title: "",
+        description: "",
+        startDate: "",
+        endDate: ""
       },
       contact: {
         id: null,
         firstName: "",
         lastName: "",
-        email: ""
+        email: "",
+        phone:""
       },
       selectedContact : {
 
@@ -174,27 +202,36 @@ export default class App extends Component{
     );
   }
 
+  Event({ event }) {
+    
+    return (
+      <span>
+        <strong>
+            {event.title}
+        </strong><br />
+            {event.description}
+      </span>
+    );
+  }
+
   componentDidMount(){
     this.eventService.getAll().then(data => this.setState({events: data}));
     this.contactService.getAll().then(data => this.setState({contacts: data}));
     this.metricService.getAll().then(data => this.setState({metrics: data}));
-    this.refreshCalendar();
   }
 
-  refreshCalendar(){
-    this.eventService.getAll().then(data => this.setState({calendarEvents: data}));
-    console.log("YO SOY "+this.state.calendarEvents);
+  manageEventSelection(event){
 
-    if (this.state.calendarEvents != null){
-      this.state.calendarEvents.forEach(
-        function(data) {
-          data['start'] = data['startDate'];
-          data['end']   = data['endDate'];
-          delete data['startDate'];
-          delete data['endDate'];
-        }
-      );
-    }
+    this.growl.show({severity: 'success', summary: 'Selected', detail: event.title});
+    this.setState({
+      selectedEvent: {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        startDate: event.startDate,
+        endDate: event.endDate
+      }
+    });
   }
 
   saveContact() {
@@ -205,7 +242,8 @@ export default class App extends Component{
           id: null,
           firstName: "",
           lastName: "",
-          email: ""
+          email: "",
+          phone:""
         }
       });
       this.growl.show({severity: 'success', summary: 'Success', detail: 'Contact Added.'});
@@ -273,6 +311,8 @@ export default class App extends Component{
     return date.day;
   }
 
+  
+
   render(){
     return (
       <div style={{width:'80%', margin: '0 auto', marginTop: '20px'}}>
@@ -292,42 +332,32 @@ export default class App extends Component{
               <Column field="firstName" header="First Name"></Column>
               <Column field="lastName" header="Last Name"></Column>
               <Column field="email" header="Email"></Column>
+              <Column field="phone" header="Phone"></Column>
             </DataTable>
             <Menubar model={this.contactPostOptions}/>
             </Panel>
           </TabPanel>
 
-
-
-
           <TabPanel header="Events" leftIcon="pi pi-calendar">
             <Menubar model={this.eventPreOptions}/>
+            <PanelCalendar localizer={localizer} 
+              events={this.state.events} 
+              startAccessor="startDate" 
+              selected={this.state.selectedEvent}
+              onSelectEvent={event => this.manageEventSelection(event)}
+              endAccessor="endDate" 
+              popup={true}
+              style={{ height: 500, margin: "50px" }} 
+              components={{event: this.Event}}
+            />
+
             <br/>
             <Panel header="Events List">
-            <DataTable value={this.state.events} paginator={true} rows={5} selectionMode="radiobutton" selection={this.state.selectedEvent} onSelectionChange={e => this.setState({selectedEvent: e.value})}>
-              <Column selectionMode="single" headerStyle={{width: '3em'}}></Column>
-              <Column field="id" header="ID"></Column>
-              <Column field="title" header="Title"></Column>
-              <Column field="description" header="Description"></Column>
-              <Column field="startDate" header="Start Date"></Column>
-              <Column field="endDate" header="End Date"></Column>
-            </DataTable>
-            <Menubar model={this.eventPostOptions}/>
             
-            <br/>
-            <DataTable value={this.state.calendarEvents} paginator={true} rows={5} selectionMode="radiobutton" selection={this.state.selectedEvent} onSelectionChange={e => this.setState({selectedEvent: e.value})}>
-              <Column selectionMode="single" headerStyle={{width: '3em'}}></Column>
-              <Column field="id" header="ID"></Column>
-              <Column field="title" header="Title"></Column>
-              <Column field="description" header="Description"></Column>
-              <Column field="startDate" header="Start Date"></Column>
-              <Column field="endDate" header="End Date"></Column>
-            </DataTable>
+            <Menubar model={this.eventPostOptions}/>
+
             </Panel>
           </TabPanel>
-
-
-
 
 
           <TabPanel header="Metrics" leftIcon="pi pi-chart-line">
@@ -389,6 +419,18 @@ export default class App extends Component{
                   } />
                 <label htmlFor="email">Email</label>
               </span>
+              <br/>
+              <span className="p-float-label">
+                <InputText value={this.state.contact.phone} style={{width : '100%'}} id="phone" onChange={(e) => {
+                    let val = e.target.value;
+                    this.setState(prevState => {
+                        let contact = Object.assign({}, prevState.contact);
+                        contact.phone = val;
+                        return { contact };
+                    })}
+                  } />
+                <label htmlFor="phone">Phone</label>
+              </span>
             </form>
         </Dialog>
 
@@ -399,6 +441,7 @@ export default class App extends Component{
               <Column field="firstName" header="First Name"></Column>
               <Column field="lastName" header="Last Name"></Column>
               <Column field="email" header="Email"></Column>
+              <Column field="phone" header="Phone"></Column>
               <Column field="modificationDate" header="Modification Date"></Column>
             </DataTable>
             </Panel>
@@ -469,7 +512,6 @@ export default class App extends Component{
               </span>
             </form>
         </Dialog>
-
 
         <Dialog id="metricDialog" header="Metric" visible={this.state.metricVisible} style={{width: '400px'}} footer={this.footerMetric} modal={true} onHide={() => this.setState({metricVisible: false})}>
             <form id="metric-form">
@@ -550,10 +592,11 @@ export default class App extends Component{
     this.setState({
       contactVisible : true,
       contact : {
-        id: null,
-        firstName: "",
-        lastName: "",
-        email: ""
+        id:         null,
+        firstName:  "",
+        lastName:   "",
+        email:      "",
+        phone:      ""
       }
     });
     document.getElementById('contact-form').reset();
@@ -577,10 +620,11 @@ export default class App extends Component{
     this.setState({
       contactVisible : true,
       contact : {
-        id: this.state.selectedContact.id,
-        firstName: this.state.selectedContact.firstName,
-        lastName: this.state.selectedContact.lastName,
-        email: this.state.selectedContact.email
+        id:         this.state.selectedContact.id,
+        firstName:  this.state.selectedContact.firstName,
+        lastName:   this.state.selectedContact.lastName,
+        email:      this.state.selectedContact.email,
+        phone:      this.state.selectedContact.phone
       }
     })
   }
@@ -588,7 +632,7 @@ export default class App extends Component{
   showEditEventDialog() {
     this.setState({
       eventVisible : true,
-      contact : {
+      event : {
         id: this.state.selectedEvent.id,
         title: this.state.selectedEvent.title,
         description: this.state.selectedEvent.description,
@@ -598,17 +642,6 @@ export default class App extends Component{
     })
   }
 
-  showEditMetricDialog() {
-    this.setState({
-      metricVisible : true,
-      metric : {
-        id: this.state.selectedMetric.id,
-        name: this.state.selectedMetric.name,
-        metricValue: this.state.selectedMetric.metricValue,
-        metricTime: this.state.selectedMetric.metricTime
-      }
-    })
-  }
 }
 
 /*
@@ -654,5 +687,4 @@ this.series.points = this.metricService.getAll().then(data => this.setState({met
                   </Charts>
               </ChartRow>
             </ChartContainer>
-
             */

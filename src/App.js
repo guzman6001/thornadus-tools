@@ -338,7 +338,7 @@ export default class App extends Component{
   render(){
     
     if (this.state.pointsValue != null){
-       alert( Object.values(this.state.pointsValue));
+       // alert( Object.values(this.state.pointsValue));
       // alert(series);
       // series=this.state.pointsValue.data
       

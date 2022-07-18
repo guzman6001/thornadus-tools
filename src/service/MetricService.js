@@ -1,10 +1,15 @@
 import axios from 'axios';
 
 export class MetricService {
+    apiUrl = "http://localhost:8086/api/points/";
     baseUrl = "http://localhost:8086/api/metrics/";
 
     getAll(){
         return axios.get(this.baseUrl).then(res => res.data);
+    }
+
+    getPoints(){
+        return axios.get(this.apiUrl).then(res => res.data);
     }
 
     get(id) {

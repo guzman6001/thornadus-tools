@@ -1,4 +1,4 @@
-import React, {Component, useState} from 'react';
+import React, {Component} from 'react';
 import {EventService}     from './service/EventService';
 import {MetricService}    from './service/MetricService';
 import {ContactService}   from './service/ContactService';
@@ -30,8 +30,6 @@ import startOfWeek from "date-fns/startOfWeek"
 
 import { Calendar as PanelCalendar, dateFnsLocalizer } from 'react-big-calendar'
 
-import DatePicker from "react-datepicker";
-
 import "./App.css";
 import 'primeicons/primeicons.css';
 import 'primereact/resources/primereact.min.css';
@@ -39,6 +37,31 @@ import "react-datepicker/dist/react-datepicker.css";
 import 'primereact/resources/themes/nova-light/theme.css';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
+const data = require("./usd_vs_euro.json");
+// const points = data.widget[0].data.reverse();
+const series = new TimeSeries({
+  name: "Metrics Timeline",
+  columns: ["time", "value"],
+  points: data.widget[0].data.reverse()
+});
+
+const style = {
+  value: {
+      stroke: "#a02c2c",
+      opacity: 0.2
+  }
+};
+
+const baselineStyleLite = {
+  line: {
+      stroke: "steelblue",
+      strokeWidth: 1,
+      opacity: 0.5
+  },
+  label: {
+      fill: "steelblue"
+  }
+};
 
 const locales = {
   "en-US": require("date-fns/locale/en-US"),
@@ -50,8 +73,6 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales,
 });
-
-
 
 export default class App extends Component{
   constructor(){
@@ -76,7 +97,6 @@ export default class App extends Component{
     this.invalidDates = [today];
 
     this.dateTemplate = this.dateTemplate.bind(this);
-
 
     this.state = {
       visible : false,
@@ -124,6 +144,7 @@ export default class App extends Component{
 
     };
     
+
     // Menu Options:
     this.metricPreOptions = [
       {
@@ -218,6 +239,7 @@ export default class App extends Component{
     this.eventService.getAll().then(data => this.setState({events: data}));
     this.contactService.getAll().then(data => this.setState({contacts: data}));
     this.metricService.getAll().then(data => this.setState({metrics: data}));
+    this.metricService.getPoints().then(data => this.setState({pointsValue: data}));
   }
 
   manageEventSelection(event){
@@ -314,6 +336,21 @@ export default class App extends Component{
   
 
   render(){
+    
+    if (this.state.pointsValue != null){
+       alert( Object.values(this.state.pointsValue));
+      // alert(series);
+      // series=this.state.pointsValue.data
+      
+    }
+    
+    /*
+      series = new TimeSeries({
+      name: "Time",
+      columns: ["time", "value"],
+      points: 
+    });*/
+
     return (
       <div style={{width:'80%', margin: '0 auto', marginTop: '20px'}}>
         <h2>Thornadus Tools</h2>
@@ -362,7 +399,22 @@ export default class App extends Component{
 
           <TabPanel header="Metrics" leftIcon="pi pi-chart-line">
             <Menubar model={this.metricPreOptions}/>
-            <br/>
+            <br />
+            <ChartContainer timeRange={series.range()} format="%b '%y">
+              <ChartRow height="150">
+                  <YAxis
+                      id="metricGraph"
+                      label="Values"
+                      min={series.min()} max={series.max()}
+                      width="60" format=",.2f"/>
+                  <Charts>
+                      <LineChart axis="metricGraph" series={series} style={style}/>                                            
+                      <Baseline axis="metricGraph" style={baselineStyleLite} value={series.avg() - series.stdev()}/>
+                      <Baseline axis="metricGraph" style={baselineStyleLite} value={series.avg() + series.stdev()}/>
+                  </Charts>
+              </ChartRow>
+            </ChartContainer>
+            <br />
             <Panel header="Contact List">
             <DataTable value={this.state.metrics} paginator={true} rows={5} selectionMode="radiobutton" selection={this.state.selectedMetric} onSelectionChange={e => this.setState({selectedMetric: e.value})}>
               <Column selectionMode="single" headerStyle={{width: '3em'}}></Column>
@@ -647,44 +699,9 @@ export default class App extends Component{
 /*
 
 
-const series = new TimeSeries({
-  name: "sensor_data",
-  columns: ["id", "name", "metricValue", "metricTime"],
-  points: null
-});
 
-const style = {
-  value: {
-      stroke: "#a02c2c",
-      opacity: 0.2
-  }
-};
 
-const baselineStyleLite = {
-  line: {
-      stroke: "steelblue",
-      strokeWidth: 1,
-      opacity: 0.5
-  },
-  label: {
-      fill: "steelblue"
-  }
-};
 
-this.series.points = this.metricService.getAll().then(data => this.setState({metrics: data}));
 
-<ChartContainer timeRange={series.range()} format="%b '%y">
-              <ChartRow height="150">
-                  <YAxis
-                      id="metricGraph"
-                      label="Price ($)"
-                      min={series.min()} max={series.max()}
-                      width="60" format=",.2f"/>
-                  <Charts>
-                      <LineChart axis="metricGraph" series={series} style={style}/>                                            
-                      <Baseline axis="metricGraph" style={baselineStyleLite} value={series.avg() - series.stdev()}/>
-                      <Baseline axis="metricGraph" style={baselineStyleLite} value={series.avg() + series.stdev()}/>
-                  </Charts>
-              </ChartRow>
-            </ChartContainer>
+
             */

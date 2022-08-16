@@ -37,12 +37,11 @@ import "react-datepicker/dist/react-datepicker.css";
 import 'primereact/resources/themes/nova-light/theme.css';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-const data = require("./usd_vs_euro.json");
-// const points = data.widget[0].data.reverse();
 const series = new TimeSeries({
   name: "Metrics Timeline",
   columns: ["time", "value"],
-  points: data.widget[0].data.reverse()
+  points: [[1656519757000,45],[1656519757000,12],[1656519757000,45],
+  [1656519757000,0],[1656519757000,45],[1656519757000,23],[1659060959000,34]]
 });
 
 const style = {
@@ -240,6 +239,7 @@ export default class App extends Component{
     this.contactService.getAll().then(data => this.setState({contacts: data}));
     this.metricService.getAll().then(data => this.setState({metrics: data}));
     this.metricService.getPoints().then(data => this.setState({pointsValue: data}));
+    series.points=this.state.pointsValue;
   }
 
   manageEventSelection(event){
@@ -336,13 +336,7 @@ export default class App extends Component{
   
 
   render(){
-    
-    if (this.state.pointsValue != null){
-       // alert( Object.values(this.state.pointsValue));
-      // alert(series);
-      // series=this.state.pointsValue.data
-      
-    }
+    series.points=this.state.pointsValue;
     
     /*
       series = new TimeSeries({
@@ -695,13 +689,3 @@ export default class App extends Component{
   }
 
 }
-
-/*
-
-
-
-
-
-
-
-            */

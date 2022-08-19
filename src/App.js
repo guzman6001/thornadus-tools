@@ -1,12 +1,16 @@
 import React, {Component} from 'react';
-import {EventService}     from './service/EventService';
-import {MetricService}    from './service/MetricService';
-import {ContactService}   from './service/ContactService';
+import {EventView}        from './events/EventView';
+import {EventService}     from './events/EventService';
+import {MetricView}       from './metrics/MetricView';
+import {MetricService}    from './metrics/MetricService';
+import {ContactView}      from './contacts/ContactView';
+import {ContactService}   from './contacts/ContactService';
+
 import {DataTable}        from 'primereact/datatable';
 import {Column}           from 'primereact/column';
 import {Panel}            from 'primereact/panel';
 import {Menubar}          from 'primereact/menubar';
-import {Calendar}         from 'primereact/calendar';
+import {Calendar as PrimeCalendar}         from 'primereact/calendar';
 import {Dialog}           from 'primereact/dialog';
 import {InputText}        from 'primereact/inputtext';
 import {Button}           from 'primereact/button';
@@ -19,7 +23,8 @@ import {
   ChartRow,
   YAxis,
   Baseline,
-  LineChart
+  LineChart,
+  Resizable
 } from "react-timeseries-charts";
 import { TimeSeries } from "pondjs";
 
@@ -37,13 +42,21 @@ import "react-datepicker/dist/react-datepicker.css";
 import 'primereact/resources/themes/nova-light/theme.css';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-const series = new TimeSeries({
+ const series = new TimeSeries({
   name: "Metrics Timeline",
   columns: ["time", "value"],
-  points: [[1656519757000,45],[1656519757000,12],[1656519757000,45],
-  [1656519757000,0],[1656519757000,45],[1656519757000,23],[1659060959000,34]]
+  points: [
+    [1656519757000,45],
+    [1656520757000,12],
+    [1656521757000,45],
+    [1656522757000,0],
+    [1656523757000,45],
+    [1656524757000,23],
+    [1656525757000,34]
+  ]
 });
-
+/** [[1656519757000,45],[1656520757000,12],[1656521757000,45],
+  [1656522757000,0],[1656523757000,45],[1656524757000,23],[1656525757000,34]] */
 const style = {
   value: {
       stroke: "#a02c2c",
@@ -150,6 +163,13 @@ export default class App extends Component{
         label : 'New Metric',
         icon  : 'pi pi-fw pi-plus',
         command : () => {this.showSaveMetricDialog()}
+      }
+    ];
+    this.metricPostOptions = [
+      {
+        label : 'Refresh',
+        icon  : 'pi pi-fw pi-plus',
+        command : () => {this.refreshMetrics()}
       }
     ];
     this.eventPreOptions = [
@@ -337,7 +357,7 @@ export default class App extends Component{
 
   render(){
     series.points=this.state.pointsValue;
-    
+
     /*
       series = new TimeSeries({
       name: "Time",
@@ -354,74 +374,17 @@ export default class App extends Component{
 
 
           <TabPanel header="Contacts" leftIcon="pi pi-users">
-            <Menubar model={this.contactPreOptions}/>
-            <br/>
-            <Panel header="Contact List">
-            <DataTable value={this.state.contacts} paginator={true} rows={5} selectionMode="radiobutton" selection={this.state.selectedContact} onSelectionChange={e => this.setState({selectedContact: e.value})}>
-              <Column selectionMode="single" headerStyle={{width: '3em'}}></Column>
-              <Column field="id" header="ID"></Column>
-              <Column field="firstName" header="First Name"></Column>
-              <Column field="lastName" header="Last Name"></Column>
-              <Column field="email" header="Email"></Column>
-              <Column field="phone" header="Phone"></Column>
-            </DataTable>
-            <Menubar model={this.contactPostOptions}/>
-            </Panel>
+            <ContactView />            
           </TabPanel>
 
           <TabPanel header="Events" leftIcon="pi pi-calendar">
-            <Menubar model={this.eventPreOptions}/>
-            <PanelCalendar localizer={localizer} 
-              events={this.state.events} 
-              startAccessor="startDate" 
-              selected={this.state.selectedEvent}
-              onSelectEvent={event => this.manageEventSelection(event)}
-              endAccessor="endDate" 
-              popup={true}
-              style={{ height: 500, margin: "50px" }} 
-              components={{event: this.Event}}
-            />
-
-            <br/>
-            <Panel header="Events List">
-            
-            <Menubar model={this.eventPostOptions}/>
-
-            </Panel>
+            <EventView /> 
           </TabPanel>
 
 
           <TabPanel header="Metrics" leftIcon="pi pi-chart-line">
-            <Menubar model={this.metricPreOptions}/>
-            <br />
-            <ChartContainer timeRange={series.range()} format="%b '%y">
-              <ChartRow height="150">
-                  <YAxis
-                      id="metricGraph"
-                      label="Values"
-                      min={series.min()} max={series.max()}
-                      width="60" format=",.2f"/>
-                  <Charts>
-                      <LineChart axis="metricGraph" series={series} style={style}/>                                            
-                      <Baseline axis="metricGraph" style={baselineStyleLite} value={series.avg() - series.stdev()}/>
-                      <Baseline axis="metricGraph" style={baselineStyleLite} value={series.avg() + series.stdev()}/>
-                  </Charts>
-              </ChartRow>
-            </ChartContainer>
-            <br />
-            <Panel header="Contact List">
-            <DataTable value={this.state.metrics} paginator={true} rows={5} selectionMode="radiobutton" selection={this.state.selectedMetric} onSelectionChange={e => this.setState({selectedMetric: e.value})}>
-              <Column selectionMode="single" headerStyle={{width: '3em'}}></Column>
-              <Column field="id" header="ID"></Column>
-              <Column field="name" header="Name"></Column>
-              <Column field="metricValue" header="Metric Value"></Column>
-              <Column field="metricTime" header="Time"></Column>
-            </DataTable>
-            </Panel>
-
+            <MetricView /> 
           </TabPanel>
-
-
         </TabView>  
         
 
@@ -497,10 +460,19 @@ export default class App extends Component{
 
 
 
-        <Dialog id="eventDialog" header="Event" visible={this.state.eventVisible} style={{width: '80%'}} footer={this.footerEvent} modal={true} onHide={() => this.setState({eventVisible: false})}>
+        <Dialog id="eventDialog" 
+          header="Event" 
+          visible={this.state.eventVisible} 
+          style={{width: '80%'}} 
+          footer={this.footerEvent} 
+          modal={true} 
+          onHide={() => this.setState({eventVisible: false})}>
             <form id="event-form">
               <span className="p-float-label">
-                <InputText value={this.state.event.title} style={{width : '100%'}} id="title" onChange={(e) => {
+                <InputText value={this.state.event.title} 
+                  style={{width : '100%'}} 
+                  id="title" 
+                  onChange={(e) => {
                     let val = e.target.value;
                     this.setState(prevState => {
                         let event = Object.assign({}, prevState.event);
@@ -524,7 +496,7 @@ export default class App extends Component{
               </span>
               <br/>
               <span className="p-float-label">
-                  <Calendar id="startDate" 
+                  <PrimeCalendar id="startDate" 
                     value={this.state.event.startDate} 
                     onChange={
                       (e) => {
@@ -541,7 +513,7 @@ export default class App extends Component{
               </span>
               <br/>
               <span className="p-float-label">
-                  <Calendar id="endDate"
+                  <PrimeCalendar id="endDate"
                     value={this.state.event.endDate} 
                     onChange={
                       (e) => {
@@ -586,7 +558,7 @@ export default class App extends Component{
               </span>
               <br/>
               <span className="p-float-label">
-                <Calendar id="metricTime" 
+                <PrimeCalendar id="metricTime" 
                     value={this.state.metric.metricTime} 
                     onChange={
                       (e) => {
@@ -686,6 +658,16 @@ export default class App extends Component{
         endDate: this.state.selectedEvent.endDate
       }
     })
+  }
+
+  refreshMetrics() {
+    alert("Series: "+series);
+
+    alert("A: "+series["points"]);
+    alert("B: "+series.points);
+    alert("C: "+this.state.pointsValue);
+    series.points=this.state.pointsValue;
+
   }
 
 }

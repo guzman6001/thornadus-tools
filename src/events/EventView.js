@@ -17,11 +17,7 @@ import startOfWeek from "date-fns/startOfWeek"
 
 import { Calendar as PanelCalendar, dateFnsLocalizer } from 'react-big-calendar'
 
-import "../App.css";
-import 'primeicons/primeicons.css';
-import 'primereact/resources/primereact.min.css';
 import "react-datepicker/dist/react-datepicker.css";
-import 'primereact/resources/themes/nova-light/theme.css';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 
@@ -138,7 +134,7 @@ export class EventView extends Component{
 
   manageEventSelection(event){
 
-    this.growl.show({severity: 'success', summary: 'Selected', detail: event.title});
+    this.growl.show({severity: 'success', summary: 'Event selected', detail: event.title});
     this.setState({
       selectedEvent: {
         id: event.id,
@@ -190,12 +186,10 @@ export class EventView extends Component{
   }
 
   
-
   render(){
   
     return (
       <div>
-        
         
              <Menubar model={this.eventPreOptions}/>
             <PanelCalendar localizer={localizer} 

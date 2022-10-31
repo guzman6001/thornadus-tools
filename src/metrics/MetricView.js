@@ -21,19 +21,7 @@ import {
 } from "react-timeseries-charts";
 import { TimeSeries } from "pondjs";
 
-import format from "date-fns/format";
-import getDay from "date-fns/getDay";
-import parse from "date-fns/parse";
-import startOfWeek from "date-fns/startOfWeek"
-
-import { Calendar as PanelCalendar, dateFnsLocalizer } from 'react-big-calendar'
-
-import "../App.css";
-import 'primeicons/primeicons.css';
-import 'primereact/resources/primereact.min.css';
 import "react-datepicker/dist/react-datepicker.css";
-import 'primereact/resources/themes/nova-light/theme.css';
-import "react-big-calendar/lib/css/react-big-calendar.css";
 
  const series = new TimeSeries({
   name: "Metrics Timeline",
@@ -68,16 +56,6 @@ const baselineStyleLite = {
   }
 };
 
-const locales = {
-  "en-US": require("date-fns/locale/en-US"),
-};
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
 
 export class MetricView extends Component{
   constructor(){
@@ -130,17 +108,26 @@ export class MetricView extends Component{
     ];
     this.metricPostOptions = [
       {
+        label : 'Edit Selected Metric',
+        icon  : 'pi pi-fw pi-pencil',
+        command : () => {this.showEditMetricDialog()}
+      },
+      {
         label : 'Refresh',
-        icon  : 'pi pi-fw pi-plus',
+        icon  : 'pi pi-fw pi-refresh',
         command : () => {this.refreshMetrics()}
+      },
+      {
+        label : 'Delete Selected Metric',
+        icon  : 'pi pi-fw pi-trash',
+        command : () => {this.deleteMetric()}
       }
     ];
-  
-  
   
 
     this.metricService  = new MetricService();
     this.saveMetric = this.saveMetric.bind(this);
+    this.deleteMetric = this.deleteMetric.bind(this);
 
 
 
@@ -175,7 +162,14 @@ export class MetricView extends Component{
     })
   }
 
-
+  deleteMetric() {
+    if(window.confirm("Are you sure?")) {
+      this.metricService.delete(this.state.selectedMetric.id).then(data => {
+        this.growl.show({severity: 'success', summary: 'Success', detail: 'Metric was deleted'});
+        this.metricService.getAll().then(data => this.setState({metrics: data}));
+      });
+    }
+  }
 
 
 
@@ -208,7 +202,6 @@ export class MetricView extends Component{
                   <Charts>
                       <LineChart axis="metricGraph" series={series} style={style}/>                                            
                       
-                      
                       <Baseline axis="metricGraph" style={baselineStyleLite} label="Min" position="right" value={series.min()}/>
                       <Baseline axis="metricGraph" style={baselineStyleLite} label="Avg" position="right" value={series.avg()}/>
                       <Baseline axis="metricGraph" style={baselineStyleLite} label="Max" position="right" value={series.max()}/>
@@ -218,7 +211,8 @@ export class MetricView extends Component{
             </Resizable>
             <br />
             <Panel header="Metrics List">
-            <DataTable value={this.state.metrics} paginator={true} rows={5} selectionMode="radiobutton" selection={this.state.selectedMetric} onSelectionChange={e => this.setState({selectedMetric: e.value})}>
+            <DataTable value={this.state.metrics} paginator={true} rows={5} selectionMode="radiobutton" 
+              selection={this.state.selectedMetric} onSelectionChange={e => this.setState({selectedMetric: e.value})}>
               <Column selectionMode="single" headerStyle={{width: '3em'}}></Column>
               <Column field="id" header="ID"></Column>
               <Column field="name" header="Name"></Column>
@@ -235,7 +229,8 @@ export class MetricView extends Component{
        
 
 
-        <Dialog id="metricDialog" header="Metric" visible={this.state.metricVisible} style={{width: '400px'}} footer={this.footerMetric} modal={true} onHide={() => this.setState({metricVisible: false})}>
+        <Dialog id="metricDialog" header="Metric" visible={this.state.metricVisible} style={{width: '400px'}} 
+        footer={this.footerMetric} modal={true} onHide={() => this.setState({metricVisible: false})}>
             <form id="metric-form">
               <span className="p-float-label">
                 <InputText value={this.state.metric.name} style={{width : '100%'}} id="name" onChange={(e) => {
@@ -287,9 +282,33 @@ export class MetricView extends Component{
     );
   }
 
+ /* Save Methods */
+ showSaveMetricDialog(){
+  this.setState({
+    metricVisible : true,
+    metric : {
+      id: null,
+      name: "",
+      metricValue: "",
+      metricTime: ""
+    }
+  });
 
+  document.getElementById('metric-form').reset();
+}
 
   /* Edit Methods */
+  showEditMetricDialog() {
+    this.setState({
+      metricVisible : true,
+      metric : {
+        id: this.state.selectedMetric.id,
+        name: this.state.selectedMetric.name,
+        metricValue: this.state.selectedMetric.metricValue,
+        metricTime: this.state.selectedMetric.metricTime
+      }
+    })
+  }
 
   refreshMetrics() {
     alert("Series: "+series);
